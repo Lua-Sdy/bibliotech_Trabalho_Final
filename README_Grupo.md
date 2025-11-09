@@ -6,6 +6,13 @@ Luã Oliveira Souza
 
 Maria Clara Mato Almeida
 
+Mario Cezar
+
+Álvaro Nunes
+
+Vitor Aguiar
+
+
 ✅ Como Executar os Testes / Pré-requisitos
 
 Java 17+

@@ -4,6 +4,8 @@ import io.github.bonigarcia.wdm.WebDriverManager;
 import org.junit.jupiter.api.*;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,10 +13,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.List;
 
 public class DashboardSeleniumTest {
 
     private WebDriver driver;
+    private WebDriverWait wait;
     private String testCaseId;
     private boolean testPassed = false;
 
@@ -26,16 +30,20 @@ public class DashboardSeleniumTest {
     @BeforeEach
     void setUp() {
         driver = new ChromeDriver();
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         driver.manage().window().maximize();
         fazerLogin();
     }
 
     void fazerLogin() {
         driver.get("http://localhost:8080/login");
-        driver.findElement(By.id("email")).sendKeys("admin@bibliotech.com");
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.id("email")))
+            .sendKeys("admin@bibliotech.com");
         driver.findElement(By.id("senha")).sendKeys("admin123");
         driver.findElement(By.id("btn-login")).click();
+
+        // Aguarda redirecionamento para o dashboard
+        wait.until(ExpectedConditions.urlContains("/dashboard"));
     }
 
     @AfterEach
@@ -73,13 +81,11 @@ public class DashboardSeleniumTest {
     void deveExibirDashboardCorreto() {
         testCaseId = "TS-014";
         try {
-            // Garante que estamos no dashboard
             String url = driver.getCurrentUrl();
             Assertions.assertTrue(url.contains("/dashboard"), "Não redirecionou para o dashboard");
 
-            // Busca cards de estatísticas
-            WebElement cardLivros = driver.findElement(By.id("total-livros"));
-            WebElement cardUsuarios = driver.findElement(By.id("usuarios-ativos"));
+            WebElement cardLivros = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("total-livros")));
+            WebElement cardUsuarios = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("usuarios-ativos")));
 
             int totalLivros = Integer.parseInt(cardLivros.getText().trim());
             int usuariosAtivos = Integer.parseInt(cardUsuarios.getText().trim());
@@ -99,15 +105,13 @@ public class DashboardSeleniumTest {
     void deveImpedirExclusaoLivroComEmprestimos() {
         testCaseId = "TS-015";
         try {
-            // Acessa a lista de livros
             driver.get("http://localhost:8080/livros");
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("table")));
 
-            // Encontra o livro "Clean Code" (assumindo que está emprestado)
-            // Procura pelo título na tabela
-            WebElement tabela = driver.findElement(By.tagName("table"));
+            // Procura linha com "Clean Code"
+            List<WebElement> linhas = driver.findElements(By.cssSelector("table tbody tr"));
             WebElement linhaCleanCode = null;
-
-            for (WebElement linha : tabela.findElements(By.tagName("tr"))) {
+            for (WebElement linha : linhas) {
                 if (linha.getText().contains("Clean Code")) {
                     linhaCleanCode = linha;
                     break;
@@ -116,33 +120,38 @@ public class DashboardSeleniumTest {
 
             Assertions.assertNotNull(linhaCleanCode, "Livro 'Clean Code' não encontrado na lista");
 
-            // Clica no botão de exclusão (assumindo que tem um botão com classe 'btn-excluir')
-            WebElement botaoExcluir = linhaCleanCode.findElement(By.cssSelector("button.btn-danger"));
+            // Agora procura o link de exclusão: <a class="btn btn-sm btn-danger">
+            WebElement botaoExcluir = wait.until(ExpectedConditions.elementToBeClickable(
+                linhaCleanCode.findElement(By.cssSelector("a.btn-danger"))
+            ));
             botaoExcluir.click();
 
-            // Aceita o alert de confirmação (se houver)
+            // Aceita o alerta de confirmação
             try {
-                Alert alert = driver.switchTo().alert();
+                Alert alert = wait.until(ExpectedConditions.alertIsPresent());
                 alert.accept();
-            } catch (NoAlertPresentException e) {
-                // Sem alerta, ok
+            } catch (TimeoutException ignored) {
+                // Nenhum alerta apareceu – ok
             }
 
-            // Verifica se aparece mensagem de erro
-            WebElement mensagemErro = null;
+            // Verifica se aparece mensagem de erro OU se o livro ainda está listado
+            boolean mensagemErroPresente = false;
+            boolean livroAindaExiste = false;
+
             try {
-                mensagemErro = driver.findElement(By.className("alert-danger"));
-            } catch (NoSuchElementException ignored) {
-                // Se não encontrar, pode estar na página de erro ou redirecionado
+                WebElement mensagemErro = wait.until(ExpectedConditions.presenceOfElementLocated(By.className("alert-danger")));
+                mensagemErroPresente = mensagemErro.getText().contains("ativos");
+            } catch (TimeoutException ignored) {
+                // Sem mensagem de erro
             }
 
-            // Também verifica se o livro ainda está na lista (não foi excluído)
+            // Atualiza a página para verificar se o livro ainda está lá
             driver.navigate().refresh();
-            boolean livroAindaExiste = driver.getPageSource().contains("Clean Code");
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("table")));
+            livroAindaExiste = driver.getPageSource().contains("Clean Code");
 
             Assertions.assertTrue(
-                (mensagemErro != null && mensagemErro.getText().contains("ativos")) ||
-                livroAindaExiste,
+                mensagemErroPresente || livroAindaExiste,
                 "Esperava impedir exclusão de livro com empréstimo ativo"
             );
 

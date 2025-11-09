@@ -198,4 +198,13 @@ public class EmprestimoService {
     public Optional<Emprestimo> buscarPorId(Long id) {
         return emprestimoRepository.findById(id);
     }
+
+	public void setEmprestimoRepository(EmprestimoRepository emprestimoRepository2) {
+		this.emprestimoRepository = emprestimoRepository2;		
+	}
+
+	public void setLivroService(LivroService livroService2) {
+		this.livroService = livroService2;
+		
+	}
 }

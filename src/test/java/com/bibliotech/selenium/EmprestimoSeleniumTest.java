@@ -4,6 +4,8 @@ import io.github.bonigarcia.wdm.WebDriverManager;
 import org.junit.jupiter.api.*;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,10 +13,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.List;
 
 public class EmprestimoSeleniumTest {
 
     private WebDriver driver;
+    private WebDriverWait wait;
     private String testCaseId;
     private boolean testPassed = false;
 
@@ -26,16 +30,20 @@ public class EmprestimoSeleniumTest {
     @BeforeEach
     void setUp() {
         driver = new ChromeDriver();
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         driver.manage().window().maximize();
         fazerLogin();
     }
 
     void fazerLogin() {
         driver.get("http://localhost:8080/login");
-        driver.findElement(By.id("email")).sendKeys("admin@bibliotech.com");
+        wait.until(ExpectedConditions.presenceOfElementLocated(By.id("email")))
+            .sendKeys("admin@bibliotech.com");
         driver.findElement(By.id("senha")).sendKeys("admin123");
         driver.findElement(By.id("btn-login")).click();
+
+        // Aguarda redirecionamento para dashboard
+        wait.until(ExpectedConditions.urlContains("/dashboard"));
     }
 
     @AfterEach
@@ -74,16 +82,21 @@ public class EmprestimoSeleniumTest {
         testCaseId = "TS-009";
         try {
             driver.get("http://localhost:8080/emprestimos/novo");
-            // Seleciona primeiro usuário e primeiro livro
-            driver.findElement(By.cssSelector("select[name='usuarioId'] option:not(:disabled)")).click();
-            driver.findElement(By.cssSelector("select[name='livroId'] option:not(:disabled)")).click();
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.name("usuarioId")));
+
+            // Seleciona primeiro usuário e primeiro livro habilitados
+            driver.findElement(By.cssSelector("select[name='usuarioId'] option:not([disabled]):not(:empty)")).click();
+            driver.findElement(By.cssSelector("select[name='livroId'] option:not([disabled]):not(:empty)")).click();
             driver.findElement(By.cssSelector("button[type='submit']")).click();
 
-            WebElement sucesso = driver.findElement(By.className("alert-success"));
-            Assertions.assertTrue(sucesso.getText().contains("realizado"));
+            // Aguarda a mensagem de sucesso
+            WebElement sucesso = wait.until(ExpectedConditions.presenceOfElementLocated(By.className("alert-success")));
+            Assertions.assertTrue(sucesso.getText().toLowerCase().contains("realizado"), 
+                "Mensagem de sucesso não encontrada: " + sucesso.getText());
             testPassed = true;
-        } catch (AssertionError e) {
+        } catch (AssertionError | TimeoutException e) {
             testPassed = false;
+            takeScreenshot("falhas", testCaseId + "_erro");
             throw e;
         }
     }
@@ -93,37 +106,40 @@ public class EmprestimoSeleniumTest {
     void deveExibirErroLivroIndisponivel() {
         testCaseId = "TS-010";
         try {
-            // Primeiro, esgotamos todos os exemplares de um livro (ex: Clean Code)
-            // Neste cenário, simulamos que o livro com menos exemplares já está esgotado
             driver.get("http://localhost:8080/emprestimos/novo");
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.name("livroId")));
 
-            // Seleciona um usuário
-            driver.findElement(By.cssSelector("select[name='usuarioId'] option:not(:disabled)")).click();
+            // Seleciona usuário
+            driver.findElement(By.cssSelector("select[name='usuarioId'] option:not([disabled])")).click();
 
-            // Verifica se há pelo menos um livro com 0 disponível
-            boolean livroIndisponivelEncontrado = false;
+            // Procura livro com "0 disponíveis"
             WebElement livroSelect = driver.findElement(By.name("livroId"));
-            for (WebElement option : livroSelect.findElements(By.tagName("option"))) {
-                if (option.getText().contains("0 disponíveis")) {
-                    option.click();
-                    livroIndisponivelEncontrado = true;
+            List<WebElement> options = livroSelect.findElements(By.tagName("option"));
+            WebElement livroIndisponivel = null;
+
+            for (WebElement opt : options) {
+                String text = opt.getText();
+                if (text.contains("0 disponíveis") && !opt.getAttribute("disabled").equals("true")) {
+                    livroIndisponivel = opt;
                     break;
                 }
             }
 
-            if (!livroIndisponivelEncontrado) {
-                // Se não encontrar, falha com explicação clara
-                Assertions.fail("Nenhum livro com 0 exemplares disponíveis encontrado para teste.");
+            if (livroIndisponivel == null) {
+                Assertions.fail("Nenhum livro com 0 exemplares disponíveis encontrado. Certifique-se de que há livros indisponíveis no sistema.");
             }
 
+            livroIndisponivel.click();
             driver.findElement(By.cssSelector("button[type='submit']")).click();
 
-            // Verifica mensagem de erro
-            WebElement erro = driver.findElement(By.className("alert-danger"));
-            Assertions.assertTrue(erro.getText().contains("indisponível"));
+            // Aguarda mensagem de erro
+            WebElement erro = wait.until(ExpectedConditions.presenceOfElementLocated(By.className("alert-danger")));
+            Assertions.assertTrue(erro.getText().toLowerCase().contains("indisponível"), 
+                "Mensagem de erro inesperada: " + erro.getText());
             testPassed = true;
-        } catch (AssertionError e) {
+        } catch (AssertionError | TimeoutException e) {
             testPassed = false;
+            takeScreenshot("falhas", testCaseId + "_erro");
             throw e;
         }
     }
@@ -134,14 +150,25 @@ public class EmprestimoSeleniumTest {
         testCaseId = "TS-011";
         try {
             driver.get("http://localhost:8080/emprestimos?filtro=ativos");
-            driver.findElement(By.linkText("Devolver")).click();
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("table")));
 
-            WebElement msg = driver.findElement(By.className("alert-success"));
-            String texto = msg.getText();
-            Assertions.assertTrue(texto.contains("sem multa") || texto.contains("R$ 0,00"));
+            // Verifica se há pelo menos um empréstimo ativo com link "Devolver"
+            List<WebElement> links = driver.findElements(By.linkText("Devolver"));
+            if (links.isEmpty()) {
+                Assertions.fail("Nenhum empréstimo ativo encontrado para devolução.");
+            }
+
+            links.get(0).click();
+
+            // Aguarda mensagem de sucesso
+            WebElement msg = wait.until(ExpectedConditions.presenceOfElementLocated(By.className("alert-success")));
+            String texto = msg.getText().toLowerCase();
+            Assertions.assertTrue(texto.contains("sem multa") || texto.contains("r$ 0,00"), 
+                "Mensagem inesperada: " + msg.getText());
             testPassed = true;
-        } catch (AssertionError e) {
+        } catch (AssertionError | TimeoutException e) {
             testPassed = false;
+            takeScreenshot("falhas", testCaseId + "_erro");
             throw e;
         }
     }
@@ -151,19 +178,27 @@ public class EmprestimoSeleniumTest {
     void deveCalcularMultaIncorreta() {
         testCaseId = "TS-012";
         try {
-            // Simula devolução com atraso (sistema deve cobrar R$ 6,00 em vez de R$ 4,00)
             driver.get("http://localhost:8080/emprestimos?filtro=ativos");
-            driver.findElement(By.linkText("Devolver")).click();
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("table")));
 
-            WebElement msg = driver.findElement(By.className("alert-info"));
+            List<WebElement> links = driver.findElements(By.linkText("Devolver"));
+            if (links.isEmpty()) {
+                Assertions.fail("Nenhum empréstimo com atraso encontrado para teste de multa.");
+            }
+
+            links.get(0).click();
+
+            // Aguarda mensagem de multa (deve ser .alert-info)
+            WebElement msg = wait.until(ExpectedConditions.presenceOfElementLocated(By.className("alert-info")));
             String texto = msg.getText();
-
-            // O BUG está aqui: o sistema mostra R$ 6,00 para 2 dias → teste falha
-            Assertions.assertTrue(texto.contains("R$ 4,00"), "Esperava multa de R$ 4,00 para 2 dias de atraso");
+            // O sistema mostra R$ 6,00 → bug confirmado se esperado era R$ 4,00
+            Assertions.assertTrue(texto.contains("R$ 4,00"), 
+                "Esperava multa de R$ 4,00, mas recebeu: " + texto);
             testPassed = true;
-        } catch (AssertionError e) {
+        } catch (AssertionError | TimeoutException e) {
             testPassed = false;
-            throw e; // Falha = BUG CONFIRMADO
+            takeScreenshot("falhas", testCaseId + "_erro");
+            throw e;
         }
     }
 
@@ -173,14 +208,30 @@ public class EmprestimoSeleniumTest {
         testCaseId = "TS-013";
         try {
             driver.get("http://localhost:8080/emprestimos/novo");
-            WebElement info = driver.findElement(By.tagName("small"));
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("body")));
+
+            // Procura por qualquer <small> que contenha info de prazo
+            List<WebElement> smalls = driver.findElements(By.tagName("small"));
+            WebElement info = null;
+            for (WebElement s : smalls) {
+                if (s.getText().contains("dia")) {
+                    info = s;
+                    break;
+                }
+            }
+
+            if (info == null) {
+                Assertions.fail("Nenhum elemento <small> com informação de prazo encontrado.");
+            }
+
             String texto = info.getText();
-            // O BUG está aqui: sistema mostra "7 dias" → teste falha
-            Assertions.assertTrue(texto.contains("14 dias"), "Esperava prazo de 14 dias");
+            Assertions.assertTrue(texto.contains("14 dias"), 
+                "Esperava '14 dias', mas encontrou: " + texto);
             testPassed = true;
-        } catch (AssertionError e) {
+        } catch (AssertionError | TimeoutException e) {
             testPassed = false;
-            throw e; // Falha = BUG CONFIRMADO
+            takeScreenshot("falhas", testCaseId + "_erro");
+            throw e;
         }
     }
 }

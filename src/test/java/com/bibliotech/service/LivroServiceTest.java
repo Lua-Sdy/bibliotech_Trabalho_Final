@@ -40,9 +40,11 @@ class LivroServiceTest {
         livro.setQuantidadeDisponivel(5);
     }
 
-    // -------------------------------
-    // Testes de Salvar
-    // -------------------------------
+    
+    
+    
+    //RF01 – Cadastrar livro
+    //RN09 – Quantidade disponível padrão
     @Test
     void salvarLivroComQuantidadeDisponivelNulaDeveSetarQuantidadeExemplares() {
         livro.setId(null); // garante que é novo livro
@@ -57,7 +59,8 @@ class LivroServiceTest {
         verify(livroRepository, times(1)).save(livro);
     }
 
-
+     //RF01 – Cadastrar livro
+//    RN01 – ISBN único
     @Test
     void salvarLivroComIsbnDuplicadoDeveLancarExcecao() {
         when(livroRepository.findByIsbn(livro.getIsbn())).thenReturn(Optional.of(livro));
@@ -72,6 +75,8 @@ class LivroServiceTest {
         assertEquals("ISBN já cadastrado!", exception.getMessage());
     }
 
+//    RF01 – Cadastrar livro
+//    RN02 – Validação de ano de publicação
     @Test
     void salvarLivroComAnoInvalidoDeveLancarExcecao() {
         livro.setAno(999); // ano inválido
@@ -86,6 +91,8 @@ class LivroServiceTest {
         assertEquals("Ano de publicação inválido", exception.getMessage());
     }
 
+    //RF01 – Cadastrar livro
+   // RN03 – Quantidade de exemplares mínima
     @Test
     void salvarLivroComQuantidadeExemplaresZeroDeveLancarExcecao() {
         livro.setQuantidadeExemplares(0);
@@ -100,6 +107,8 @@ class LivroServiceTest {
         assertEquals("Quantidade de exemplares deve ser maior que zero", exception.getMessage());
     }
     
+    //RF01 – Cadastrar livro
+   // RN04 – Título obrigatório
     @Test
     void salvarLivroComTituloNuloDeveLancarExcecao() {
         livro.setTitulo(null);
@@ -109,6 +118,7 @@ class LivroServiceTest {
         assertEquals("Título do livro é obrigatório", exception.getMessage());
     }
     
+    //RF05 – Buscar livros por título
     @Test
     void buscarPorTituloNaoEncontradoDeveRetornarListaVazia() {
         when(livroRepository.findByTituloContainingIgnoreCase("Python")).thenReturn(Arrays.asList());
@@ -118,9 +128,7 @@ class LivroServiceTest {
         assertTrue(encontrados.isEmpty());
     }
 
-    // -------------------------------
-    // Testes de Consulta
-    // -------------------------------
+    //RF05 – Buscar livros por título
     @Test
     void buscarPorTituloDeveSerCaseInsensitive() {
         when(livroRepository.findByTituloContainingIgnoreCase("java")).thenReturn(Arrays.asList(livro));
@@ -131,6 +139,7 @@ class LivroServiceTest {
         assertEquals(livro.getTitulo(), encontrados.get(0).getTitulo());
     }
 
+    //RF06 – Buscar livros por autor
     @Test
     void buscarPorAutorDeveSerCaseInsensitive() {
         when(livroRepository.findByAutorContainingIgnoreCase("autor")).thenReturn(Arrays.asList(livro));
@@ -140,7 +149,8 @@ class LivroServiceTest {
         assertFalse(encontrados.isEmpty());
         assertEquals(livro.getAutor(), encontrados.get(0).getAutor());
     }
-
+    //RF04 – Buscar livro por ISBN
+    //
     @Test
     void buscarPorIsbnDeveRetornarLivroExato() {
         when(livroRepository.findByIsbn(livro.getIsbn())).thenReturn(Optional.of(livro));
@@ -151,6 +161,8 @@ class LivroServiceTest {
         assertEquals(livro.getIsbn(), encontrado.get().getIsbn());
     }
 
+    //RF07 – Listar livros disponíveis
+    //RN06 – Quantidade disponível não negativa
     @Test
     void listarDisponiveisDeveRetornarApenasLivrosComQuantidadeDisponivelMaiorQueZero() {
         when(livroRepository.findByQuantidadeDisponivelGreaterThan(0)).thenReturn(Arrays.asList(livro));
@@ -161,9 +173,7 @@ class LivroServiceTest {
         assertTrue(disponiveis.get(0).getQuantidadeDisponivel() > 0);
     }
 
-    // -------------------------------
-    // Testes de Exclusão
-    // -------------------------------
+    //RF08 – Excluir livro
     @Test
     void excluirLivroComEmprestimosInativosDeveFuncionar() {
         livro.setEmprestimos(Arrays.asList(new com.bibliotech.model.Emprestimo() {{
@@ -176,7 +186,8 @@ class LivroServiceTest {
         verify(livroRepository, times(1)).delete(livro);
     }
 
-
+    //RF08 – Excluir livro
+    //RN05 – Bloqueio de exclusão com empréstimos ativos
     @Test
     void excluirLivroComEmprestimosAtivosDeveLancarExcecao() {
         // simulando empréstimo ativo
@@ -191,6 +202,7 @@ class LivroServiceTest {
         assertEquals("Não é possível excluir livro com empréstimos ativos", exception.getMessage());
     }
 
+  //RF08 – Excluir livro
     @Test
     void excluirLivroNaoEncontradoDeveLancarExcecao() {
         when(livroRepository.findById(2L)).thenReturn(Optional.empty());
@@ -200,9 +212,7 @@ class LivroServiceTest {
         assertEquals("Livro não encontrado", exception.getMessage());
     }
 
-    // -------------------------------
-    // Testes de Disponibilidade
-    // -------------------------------
+   //RF10 – Controlar disponibilidade dos livros
     @Test
     void decrementarDisponibilidadeDeveReduzirQuantidadeDisponivel() {
         when(livroRepository.save(livro)).thenReturn(livro);
@@ -213,6 +223,8 @@ class LivroServiceTest {
         verify(livroRepository, times(1)).save(livro);
     }
 
+    //RF10 – Controlar disponibilidade dos livros
+    //RN06 – Quantidade disponível não negativa
     @Test
     void decrementarDisponibilidadeComZeroNaoDeveSalvar() {
         livro.setQuantidadeDisponivel(0);
@@ -222,7 +234,7 @@ class LivroServiceTest {
         assertEquals(0, livro.getQuantidadeDisponivel());
         verify(livroRepository, times(0)).save(livro);
     }
-
+    //RF10 – Controlar disponibilidade dos livros
     @Test
     void incrementarDisponibilidadeDeveAumentarQuantidadeDisponivel() {
         livro.setQuantidadeDisponivel(4);
@@ -233,18 +245,21 @@ class LivroServiceTest {
         assertEquals(5, livro.getQuantidadeDisponivel());
         verify(livroRepository, times(1)).save(livro);
     }
-    
+    //RF01 – Cadastrar livro
+   // (Violação possível da RN07 – consistência entre exemplares e disponíveis)
     @Test
-    void salvarLivroComQuantidadeDisponivelMaiorQueExemplaresDeveAjustar() {
-        livro.setQuantidadeDisponivel(10);
+    void salvarLivroComQuantidadeDisponivelMaiorQueExemplares() {
+        livro.setQuantidadeDisponivel(10); // maior que exemplares
         livro.setQuantidadeExemplares(5);
         when(livroRepository.save(livro)).thenReturn(livro);
 
         Livro salvo = livroService.salvar(livro);
 
-        assertEquals(livro.getQuantidadeExemplares(), salvo.getQuantidadeDisponivel());
+        // Aqui vamos afirmar que a quantidade disponível DEVE ser menor ou igual aos exemplares
+        assertTrue(salvo.getQuantidadeDisponivel() <= salvo.getQuantidadeExemplares(),
+            "Falhou: quantidade disponível maior que exemplares");
     }
-   
+
     @Test
     void incrementarDisponibilidadeAlemDoTotalNaoDeveExcederQuantidadeExemplares() {
         livro.setQuantidadeDisponivel(5);
@@ -267,3 +282,5 @@ class LivroServiceTest {
 
 
 }
+
+

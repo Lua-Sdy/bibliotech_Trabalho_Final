@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"com.bibliotech"},{"l":"com.bibliotech.config"},{"l":"com.bibliotech.controller"},{"l":"com.bibliotech.model"},{"l":"com.bibliotech.repository"},{"l":"com.bibliotech.service"}];updateSearchResults();

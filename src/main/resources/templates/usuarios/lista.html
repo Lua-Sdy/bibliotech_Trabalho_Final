@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Usuários - BiblioTech</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">📚 BiblioTech</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/livros">Livros</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/usuarios">Usuários</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/emprestimos">Empréstimos</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link" href="/logout">Sair</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Lista de Usuários</h1>
+            <a href="/usuarios/novo" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Novo Usuário
+            </a>
+        </div>
+
+        <div th:if="${sucesso}" class="alert alert-success alert-dismissible">
+            <span th:text="${sucesso}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div th:if="${erro}" class="alert alert-danger alert-dismissible">
+            <span th:text="${erro}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>CPF</th>
+                        <th>Tipo</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="usuario : ${usuarios}">
+                        <td th:text="${usuario.id}"></td>
+                        <td th:text="${usuario.nome}"></td>
+                        <td th:text="${usuario.email}"></td>
+                        <td th:text="${usuario.cpf}"></td>
+                        <td>
+                            <span class="badge bg-info" th:text="${usuario.tipo.descricao}"></span>
+                        </td>
+                        <td>
+                            <span class="badge bg-success" th:if="${usuario.ativo}">Ativo</span>
+                            <span class="badge bg-secondary" th:unless="${usuario.ativo}">Inativo</span>
+                        </td>
+                        <td>
+                            <a th:href="@{/emprestimos/usuario/{id}(id=${usuario.id})}"
+                               class="btn btn-sm btn-info" title="Histórico">
+                                <i class="bi bi-clock-history"></i>
+                            </a>
+                            <a th:href="@{/usuarios/editar/{id}(id=${usuario.id})}"
+                               class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a th:href="@{/usuarios/excluir/{id}(id=${usuario.id})}"
+                               class="btn btn-sm btn-danger"
+                               onclick="return confirm('Tem certeza que deseja excluir este usuário?')">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div th:if="${#lists.isEmpty(usuarios)}" class="alert alert-info">
+            Nenhum usuário encontrado.
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Livros - BiblioTech</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">📚 BiblioTech</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/livros">Livros</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/usuarios">Usuários</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/emprestimos">Empréstimos</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link" href="/logout">Sair</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Lista de Livros</h1>
+            <a href="/livros/novo" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Novo Livro
+            </a>
+        </div>
+
+        <div th:if="${sucesso}" class="alert alert-success alert-dismissible" role="alert">
+            <span th:text="${sucesso}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div th:if="${erro}" class="alert alert-danger alert-dismissible" role="alert">
+            <span th:text="${erro}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get" action="/livros" class="row g-3">
+                    <div class="col-md-4">
+                        <select name="tipo" class="form-select">
+                            <option value="titulo" th:selected="${tipo == 'titulo'}">Buscar por Título</option>
+                            <option value="autor" th:selected="${tipo == 'autor'}">Buscar por Autor</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" name="busca" 
+                               th:value="${busca}" placeholder="Digite sua busca...">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> Buscar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Título</th>
+                        <th>Autor</th>
+                        <th>ISBN</th>
+                        <th>Editora</th>
+                        <th>Ano</th>
+                        <th>Disponível</th>
+                        <th>Total</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="livro : ${livros}" class="livro-item">
+                        <td th:text="${livro.id}"></td>
+                        <td th:text="${livro.titulo}"></td>
+                        <td th:text="${livro.autor}"></td>
+                        <td th:text="${livro.isbn}"></td>
+                        <td th:text="${livro.editora}"></td>
+                        <td th:text="${livro.ano}"></td>
+                        <td>
+                            <span class="badge bg-success" th:if="${livro.quantidadeDisponivel > 0}"
+                                  th:text="${livro.quantidadeDisponivel}"></span>
+                            <span class="badge bg-danger" th:if="${livro.quantidadeDisponivel == 0}">0</span>
+                        </td>
+                        <td th:text="${livro.quantidadeExemplares}"></td>
+                        <td>
+                            <a th:href="@{/livros/editar/{id}(id=${livro.id})}" 
+                               class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a th:href="@{/livros/excluir/{id}(id=${livro.id})}" 
+                               class="btn btn-sm btn-danger"
+                               onclick="return confirm('Tem certeza que deseja excluir este livro?')">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div th:if="${#lists.isEmpty(livros)}" class="alert alert-info">
+            Nenhum livro encontrado.
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

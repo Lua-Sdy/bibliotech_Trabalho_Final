@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Empréstimos - BiblioTech</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">📚 BiblioTech</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/livros">Livros</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/usuarios">Usuários</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/emprestimos">Empréstimos</a></li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link" href="/logout">Sair</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Empréstimos</h1>
+            <a href="/emprestimos/novo" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Novo Empréstimo
+            </a>
+        </div>
+
+        <div th:if="${sucesso}" class="alert alert-success alert-dismissible">
+            <span th:text="${sucesso}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div th:if="${erro}" class="alert alert-danger alert-dismissible">
+            <span th:text="${erro}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="btn-group mb-3" role="group">
+            <a href="/emprestimos" class="btn btn-outline-primary"
+               th:classappend="${filtro == null} ? 'active' : ''">
+                Todos
+            </a>
+            <a href="/emprestimos?filtro=ativos" class="btn btn-outline-primary"
+               th:classappend="${filtro == 'ativos'} ? 'active' : ''">
+                Ativos
+            </a>
+            <a href="/emprestimos?filtro=atrasados" class="btn btn-outline-primary"
+               th:classappend="${filtro == 'atrasados'} ? 'active' : ''">
+                Atrasados
+            </a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Usuário</th>
+                        <th>Livro</th>
+                        <th>Data Empréstimo</th>
+                        <th>Data Devolução Prevista</th>
+                        <th>Data Devolução Real</th>
+                        <th>Multa</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="emp : ${emprestimos}">
+                        <td th:text="${emp.id}"></td>
+                        <td th:text="${emp.usuario.nome}"></td>
+                        <td th:text="${emp.livro.titulo}"></td>
+                        <td th:text="${#temporals.format(emp.dataEmprestimo, 'dd/MM/yyyy')}"></td>
+                        <td th:text="${#temporals.format(emp.dataDevolucaoPrevista, 'dd/MM/yyyy')}"></td>
+                        <td>
+                            <span th:if="${emp.dataDevolucaoReal != null}"
+                                  th:text="${#temporals.format(emp.dataDevolucaoReal, 'dd/MM/yyyy')}"></span>
+                            <span th:if="${emp.dataDevolucaoReal == null}">-</span>
+                        </td>
+                        <td>
+                            <span th:if="${emp.multa > 0}" class="text-danger">
+                                R$ <span th:text="${#numbers.formatDecimal(emp.multa, 1, 2)}"></span>
+                            </span>
+                            <span th:if="${emp.multa == 0}">-</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-success" th:if="${emp.ativo and !emp.atrasado}">Ativo</span>
+                            <span class="badge bg-warning" th:if="${emp.ativo and emp.atrasado}">Atrasado</span>
+                            <span class="badge bg-secondary" th:if="${!emp.ativo}">Devolvido</span>
+                        </td>
+                        <td>
+                            <a th:if="${emp.ativo}" 
+                               th:href="@{/emprestimos/devolver/{id}(id=${emp.id})}"
+                               class="btn btn-sm btn-success">
+                                <i class="bi bi-check-circle"></i> Devolver
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

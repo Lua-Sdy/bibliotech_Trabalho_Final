@@ -76,10 +76,8 @@ public class UsuarioService {
     public Optional<Usuario> autenticar(String email, String senha) {
         Optional<Usuario> usuario = usuarioRepository.findByEmail(email);
 
-        if (usuario.isPresent()) {
-            if (usuario.get().getSenha() == senha) {
-                return usuario;
-            }
+        if (senha != null && senha.equals(usuario.get().getSenha())) {
+            return usuario;
         }
 
         return Optional.empty();

@@ -43,7 +43,7 @@ class EmprestimoServiceTest {
     }
 
     
-    //RN-01 (Prazo de Empréstimo) e RN-04 (Disponibilidade para Empréstimo)
+
     @Test
     void testRealizarEmprestimoComSucesso() {
         when(emprestimoRepository.save(any(Emprestimo.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -55,15 +55,13 @@ class EmprestimoServiceTest {
         verify(livroService, times(1)).decrementarDisponibilidade(livro);
     }
 
-    //RN-01 (Prazo de Empréstimo)
     @Test
     void testCalcularDataDevolucaoCorreta() {
         LocalDate dataEmprestimo = LocalDate.of(2025, 11, 2);
         LocalDate dataDevolucao = emprestimoService.calcularDataDevolucao(dataEmprestimo);
         assertEquals(LocalDate.of(2025, 11, 16), dataDevolucao);
     }
-    
- //RN-03 (Multa por Atraso)
+
     @Test
     void testCalcularMultaSemAtraso() {
         Emprestimo emprestimo = new Emprestimo(usuario, livro, LocalDate.now(), LocalDate.now().plusDays(14));
@@ -73,7 +71,6 @@ class EmprestimoServiceTest {
         assertEquals(0.0, multa);
     }
 
-    //RN-03 (Multa por Atraso)
     @Test
     void testCalcularMultaComAtraso() {
         Emprestimo emprestimo = new Emprestimo(usuario, livro, LocalDate.now().minusDays(20), LocalDate.now().minusDays(6));
@@ -83,7 +80,6 @@ class EmprestimoServiceTest {
         assertEquals(12.0, multa); // 6 dias x 2
     }
 
-    //RN-12 (Devolução Única) e RN-03 (Multa por Atraso)
     @Test
     void testRegistrarDevolucaoComSucesso() {
         Emprestimo emprestimo = new Emprestimo(usuario, livro, LocalDate.now().minusDays(15), LocalDate.now().minusDays(1));
@@ -98,8 +94,7 @@ class EmprestimoServiceTest {
         assertFalse(devolvido.getAtivo());
         verify(livroService, times(1)).incrementarDisponibilidade(livro);
     }
-    
-    //RN-12 (Devolução Uunica)
+
     @Test
     void testRegistrarDevolucaoDuplicadaLancaExcecao() {
         Emprestimo emprestimo = new Emprestimo(usuario, livro, LocalDate.now().minusDays(15), LocalDate.now().minusDays(1));
@@ -113,8 +108,7 @@ class EmprestimoServiceTest {
 
         assertEquals("Empréstimo já foi devolvido", exception.getMessage());
     }
-    
-    //RN-03 (Multa por Atraso)
+
     @Test
     void testRegistrarDevolucaoComMulta() {
         Emprestimo emprestimo = new Emprestimo(usuario, livro, LocalDate.now().minusDays(16), LocalDate.now().minusDays(2));
@@ -125,7 +119,7 @@ class EmprestimoServiceTest {
 
         assertEquals(2 * 2.0, devolvido.getMulta()); // 2 dias de atraso x R$2
     }
-    //RN-04 (Disponibilidade para Empréstimo)
+    
     @Test
     void testRealizarEmprestimoQuandoIndisponivelLancaExcecao() {
         livro.setQuantidadeDisponivel(0);
@@ -137,5 +131,3 @@ class EmprestimoServiceTest {
         assertEquals("Livro indisponível para empréstimo", exception.getMessage());
     }
 }
-
-
